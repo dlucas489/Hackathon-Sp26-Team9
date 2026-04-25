@@ -51,18 +51,18 @@ jupyter notebook
 
 ## Notebook Execution Order
 
-| Notebook | Output | Notes |
-|---|---|---|
-| `01_quickstats` | `data/processed/quickstats_yield.csv` | |
-| `02_weather` | `data/processed/weather_features.csv` | Requires `NOAA_API_KEY` in `.env` |
-| `03_satellite` | `data/raw/ndvi_by_state_date.csv` | **SageMaker only** — commit CSV to repo, do not re-run locally |
-| `03b_modis_backfill` | `data/raw/ndvi_combined.csv` | Merges MODIS (2005–2014) + HLS (2015–2024); runs locally |
-| `04_merge_features` | `data/processed/training_features.csv` | |
-| `05_model` | `outputs/predictions.csv` | Phase 1: RF baseline → Phase 2: Prithvi |
-| `06_viz` | `outputs/*.png` | |
+| Notebook | Output | Status | Notes |
+|---|---|---|---|
+| `01_quickstats` | `data/processed/quickstats_yield.csv` | ✅ Complete | |
+| `02_weather` | `data/processed/weather_features.csv` | ✅ Complete | Requires `NOAA_API_KEY` in `.env` |
+| `03_satellite_fixed` | `data/raw/ndvi_by_state_date.csv` | ✅ Complete | **SageMaker only** — CSV committed to repo, do not re-run locally |
+| `04_merge_features` | `data/processed/training_features.csv` | 🔄 In Progress | |
+| `05_model` | `outputs/predictions.csv` | ⏳ Pending | Random Forest baseline; Prithvi upgrade under consideration |
+| `06_viz` | `outputs/*.png` | ⏳ Pending | |
 
-> `03_satellite.ipynb` runs on SageMaker and requires NASA Earthdata credentials via IAM.
-> Once complete, the teammate running it commits `ndvi_by_state_date.csv` directly to the repo.
+> `03_satellite_fixed.ipynb` runs on SageMaker and requires NASA Earthdata credentials via IAM.
+> It includes CDL corn-field masking (reprojected to HLS pixel grid) and a checkpoint/resume loop.
+> The output CSV (`ndvi_by_state_date.csv`) is committed to the repo — do not re-run locally.
 > All other notebooks run in the local conda environment.
 
 ---
