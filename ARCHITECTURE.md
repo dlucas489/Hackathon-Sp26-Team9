@@ -61,23 +61,23 @@ RAW DATA SOURCES
 │  Joins QuickStats + NOAA + NDVI     │
 │  on year + state                    │
 │  → data/processed/training_features │
-│  STATUS: 🔄 In Progress             │
+│  STATUS: ✅ Complete                │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│  05_model.ipynb                     │
-│  Random Forest Regressor (baseline) │
+│  05_model_production.ipynb          │
+│  Random Forest Regressor (v1.4)     │
 │  Prithvi-100M (under consideration) │
-│  → outputs/predictions.csv          │
-│  STATUS: ⏳ Pending                 │
+│  → outputs/predictions.05_model_production.csv │
+│  STATUS: ✅ Complete                │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│  06_viz.ipynb                       │
+│  06_viz.ipynb (notebooks/analysis/) │
 │  Yield trajectories, uncertainty    │
 │  cones, analog year overlays        │
 │  → outputs/*.png                    │
-│  STATUS: ⏳ Pending                 │
+│  STATUS: ✅ Complete                │
 └─────────────────────────────────────┘
 ```
 
@@ -97,10 +97,40 @@ Feature sets are strictly bounded by data available at each date — no future l
 | `oct1` | Weather May–Sep + ndvi_aug1–oct1 |
 | `final` | Weather May–Oct + ndvi_aug1–final |
 
-Train: 2005–2020 | Validate: 2021–2024 | Predict: 2025
+Train: 2005–2023 | Validate: 2024 | Predict: 2025
 
 Uncertainty: 500-iteration bootstrap (5th–95th percentile CI).
 Analog years: top 3 historical years by Euclidean distance on normalized features.
+
+### Model Selection: Production Choice (v1.4)
+
+**Selected:** Random Forest Regressor with extended training window and per-state bias correction.
+
+**Rationale:** See [MODEL_SELECTION.md](MODEL_SELECTION.md) and `outputs/full_diff.csv` for full comparison.
+
+Key improvements over baseline (v1.0):
+- Extended training: 2005–2020 → 2005–2023
+- Per-state detrending: Removes long-term trend before training
+- Per-state bias correction: Validation errors subtracted from predictions
+
+Result: Validation accuracy and uncertainty calibration significantly improved vs. earlier versions.
+See `outputs/full_diff.csv` for validation results per model per date.
+
+### Validation Strategy
+
+- **Train:** 2005–2023 (19 years of historical data)
+- **Test:** 2024 only (held-out validation set; 5 state-years)
+- **Predict:** 2025 (5 state-years; ground truth not yet available)
+
+Metrics computed per forecast date (aug1, sep1, oct1, final).
+
+**No data leakage:** Each forecast date uses only features available at that date.
+- aug1: Weather May–Jul + ndvi_aug1
+- sep1: Weather May–Aug + ndvi_aug1, ndvi_sep1
+- oct1: Weather May–Sep + ndvi_aug1–oct1
+- final: Weather May–Oct + ndvi_aug1–final
+
+See `outputs/full_diff.csv` for validation results per model per date.
 
 ### Option B — Prithvi-100M (primary model per prompt, under consideration)
 
@@ -114,9 +144,8 @@ The pipeline architecture does not change — only `05_model.ipynb` is modified.
 
 Contact: Kevin (NASA) in the hackathon room for HLS tile access and Prithvi setup questions.
 
-> **Decision pending:** the team will select Option A (Random Forest) or Option B (Prithvi)
-> after evaluating available GPU time and data compatibility. The `05_model.ipynb` notebook
-> includes a stub for both paths.
+> **Decision:** Random Forest (Option A) was selected as the production model (v1.4).
+> See [MODEL_SELECTION.md](MODEL_SELECTION.md) for full rationale and `outputs/full_diff.csv` for metrics.
 
 ---
 

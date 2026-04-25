@@ -42,11 +42,11 @@ Output: `data/processed/weather_features.csv`
 
 ---
 
-## 🟡 PHASE 2 — Feature Engineering (Hours 3–6, ~10pm–1am Friday) — 🔄 IN PROGRESS
+## ✅ PHASE 2 — Feature Engineering (Hours 3–6, ~10pm–1am Friday) — ✅ COMPLETE
 
 **Goal: One flat training CSV combining all data sources.**
 
-### `notebooks/04_merge_features.ipynb` — running now
+### `notebooks/04_merge_features.ipynb` — complete
 - Join QuickStats yield + NOAA weather on `year` + `state`
 - Join NDVI from `data/raw/ndvi_by_state_date.csv`
 - Output schema: `year | state | ndvi_aug1 | ndvi_sep1 | ndvi_oct1 | ndvi_final | tavg_may … tavg_oct | prcp_may … prcp_oct | yield_bu_acre`
@@ -54,38 +54,36 @@ Output: `data/processed/weather_features.csv`
 
 ---
 
-## 🟡 PHASE 3 — Model (Hours 6–12, ~1am–7am Saturday)
+## ✅ PHASE 3 — Model Selection & Training — COMPLETE
 
 **Goal: Predictions for all 5 states at all 4 forecast dates.**
 
-### `notebooks/05_model.ipynb`
+### `notebooks/05_model_production.ipynb`
 
-**Option A — Random Forest Regressor (scikit-learn)**
-- Four `RandomForestRegressor` instances, one per forecast date (Aug 1 / Sep 1 / Oct 1 / Final)
-- Train on 2005–2020, validate on 2021–2024 (report RMSE per date)
-- Predict 2025 yield for each state at each forecast date
-- Bootstrap confidence interval: 500 iterations, 5th–95th percentile
-- Analog year identification: top 3 historical years by Euclidean distance on normalized features
-- Hyperparameters to tune: `n_estimators`, `max_depth`, `min_samples_leaf`
+**Selected:** Option A — Random Forest Regressor (v1.4)
 
-**Option B — Prithvi-100M (nasa-ibm/prithvi-100m on Hugging Face)**
-- As specified in the hackathon prompt — NASA/IBM geospatial foundation model
-- Replaces raw NDVI scalars with temporal-spectral embeddings from HLS tile stacks
-- Lightweight MLP or RF regression head trained on frozen Prithvi encoder
-- Requires SageMaker GPU (ml.g4dn.xlarge or larger)
-- Output schema identical to Option A
+Implementation:
+- Four RF regressors (one per forecast date: aug1, sep1, oct1, final)
+- Train: 2005–2023 | Validate: 2024 | Predict: 2025
+- Bootstrap confidence intervals: 500 iterations, 5th–95th percentile
+- Per-state analog year identification (top 3 by normalized feature distance)
+- Per-state detrending + per-state bias correction
 
-> **Decision:** select whichever option fits available GPU time and data. The notebook includes stubs for both paths. Ask Kevin (NASA) for Prithvi/HLS tile guidance if going Option B.
+Results: See `outputs/full_diff.csv` for accuracy, error, and calibration metrics.
 
-Save predictions to `outputs/predictions.csv`
+Key insight: Model 1.4 was selected because earlier versions (1.0–1.2) provided
+overconfident uncertainty estimates, while version 1.5 overfitted.
+See [MODEL_SELECTION.md](MODEL_SELECTION.md) for full comparison.
+
+Previous model iterations archived to `notebooks/archive/`.
 
 ---
 
-## 🟢 PHASE 4 — Visualization (Hours 12–18, ~7am–1pm Saturday)
+## ✅ PHASE 4 — Visualization (Hours 12–18, ~7am–1pm Saturday) — COMPLETE
 
 **Goal: Charts and maps ready for the presentation.**
 
-### `notebooks/06_viz.ipynb`
+### `notebooks/analysis/06_viz.ipynb`
 - Time series: yield forecast trajectory per state across 4 dates
 - Cone of uncertainty: shaded bands around point estimates
 - Bar chart: predicted vs. historical yield by state
@@ -93,7 +91,7 @@ Save predictions to `outputs/predictions.csv`
 
 ---
 
-## 🟢 PHASE 5 — Presentation (Hours 18–22, ~1pm–5pm Saturday)
+## ✅ PHASE 5 — Presentation (Hours 18–22, ~1pm–5pm Saturday) — COMPLETE
 
 **Goal: 5–7 minute pitch ready by 5pm.**
 
@@ -106,6 +104,18 @@ Save predictions to `outputs/predictions.csv`
 6. Impact statement (30 sec)
 
 **Key message for judges:** frame every result in terms of real-world impact. "Our August 1 model predicts Iowa at X bu/acre ± Y — that's actionable 2 months before harvest."
+
+---
+
+## ✅ PHASE 6 — Documentation & Repository Reorganization (2.5h before presentation)
+
+- ✅ Organized notebooks: production vs. archive vs. analysis
+- ✅ Updated README, ARCHITECTURE, ROADMAP, MODEL_SELECTION for clarity
+- ✅ Populated requirements.txt with all dependencies
+- ✅ Updated .env.example with credential placeholders
+- ✅ Reorganized directory structure for discoverability
+
+All metrics referenced from CSV files (full_diff.csv, comparison_summary.csv, etc.).
 
 ---
 
