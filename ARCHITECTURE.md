@@ -36,7 +36,7 @@ RAW DATA SOURCES
 │  01_quickstats.ipynb                │
 │  USDA NASS yield data (2005–2024)   │
 │  → data/processed/quickstats_yield  │
-│  STATUS: Complete                   │
+│  STATUS: ✅ Complete                │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
@@ -44,21 +44,16 @@ RAW DATA SOURCES
 │  NOAA GSOM — monthly TAVG + PRCP    │
 │  5 states × May–Oct × 2005–2025     │
 │  → data/processed/weather_features  │
-│  STATUS: Complete                   │
+│  STATUS: ✅ Complete                │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│  03_satellite.ipynb  (SageMaker)    │
+│  03_satellite_fixed.ipynb (SageMaker)│
 │  NASA HLS S30 — NDVI per state      │
+│  CDL corn-field masking applied     │
 │  per forecast date, 2015–2024       │
 │  → data/raw/ndvi_by_state_date.csv  │
-│  STATUS: Iowa done, CO in progress  │
-├─────────────────────────────────────┤
-│  03b_modis_backfill.ipynb           │
-│  MODIS MOD13Q1 — NDVI 2005–2014     │
-│  Concatenates with HLS output       │
-│  → data/raw/ndvi_combined.csv       │
-│  STATUS: To be implemented          │
+│  STATUS: ✅ Complete (CSV committed) │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
@@ -66,15 +61,15 @@ RAW DATA SOURCES
 │  Joins QuickStats + NOAA + NDVI     │
 │  on year + state                    │
 │  → data/processed/training_features │
-│  STATUS: Ready (pending 03 output)  │
+│  STATUS: 🔄 In Progress             │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
 │  05_model.ipynb                     │
-│  Phase 1 (MVP): 4× Random Forest    │
-│  Phase 2: Prithvi upgrade layer     │
+│  Random Forest Regressor (baseline) │
+│  Prithvi-100M (under consideration) │
 │  → outputs/predictions.csv          │
-│  STATUS: In progress                │
+│  STATUS: ⏳ Pending                 │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
@@ -82,7 +77,7 @@ RAW DATA SOURCES
 │  Yield trajectories, uncertainty    │
 │  cones, analog year overlays        │
 │  → outputs/*.png                    │
-│  STATUS: Ready (pending 05 output)  │
+│  STATUS: ⏳ Pending                 │
 └─────────────────────────────────────┘
 ```
 
@@ -90,7 +85,7 @@ RAW DATA SOURCES
 
 ## Model Architecture
 
-### Phase 1 — Random Forest (MVP baseline)
+### Option A — Random Forest Regressor (MVP baseline)
 
 Four `RandomForestRegressor` instances (scikit-learn), one per forecast date.
 Feature sets are strictly bounded by data available at each date — no future leakage.
@@ -107,7 +102,7 @@ Train: 2005–2020 | Validate: 2021–2024 | Predict: 2025
 Uncertainty: 500-iteration bootstrap (5th–95th percentile CI).
 Analog years: top 3 historical years by Euclidean distance on normalized features.
 
-### Phase 2 — Prithvi (primary model per prompt)
+### Option B — Prithvi-100M (primary model per prompt, under consideration)
 
 The hackathon prompt specifies Prithvi — NASA/IBM's open-source geospatial foundation model
 (`nasa-ibm/prithvi-100m`, available on Hugging Face) — as the intended model backbone.
@@ -115,9 +110,13 @@ The hackathon prompt specifies Prithvi — NASA/IBM's open-source geospatial fou
 Prithvi replaces raw NDVI scalars with rich temporal-spectral embeddings extracted from HLS
 tile stacks. A lightweight regression head (MLP or RF) trains on top of the frozen encoder.
 The pipeline architecture does not change — only `05_model.ipynb` is modified. Output schema
-(predictions.csv) is identical to Phase 1. Runs on SageMaker GPU (ml.g4dn.xlarge or larger).
+(predictions.csv) is identical to Option A. Runs on SageMaker GPU (ml.g4dn.xlarge or larger).
 
 Contact: Kevin (NASA) in the hackathon room for HLS tile access and Prithvi setup questions.
+
+> **Decision pending:** the team will select Option A (Random Forest) or Option B (Prithvi)
+> after evaluating available GPU time and data compatibility. The `05_model.ipynb` notebook
+> includes a stub for both paths.
 
 ---
 
@@ -142,12 +141,11 @@ state bounding box.
 
 | Dataset | Purpose | Status |
 |---|---|---|
-| USDA QuickStats | Y variable (yield labels) | Complete |
-| NOAA GSOM API | Weather features | Complete |
-| NASA HLS S30 | NDVI 2015–2024 | Partially complete (SageMaker) |
-| MODIS MOD13Q1 | NDVI backfill 2005–2014 | To implement |
-| Prithvi-100M | Geospatial embeddings (Phase 2) | Planned |
-| Cropland Data Layer | Corn field masking | Not integrated |
+| USDA QuickStats | Y variable (yield labels) | ✅ Complete |
+| NOAA GSOM API | Weather features | ✅ Complete |
+| NASA HLS S30 | NDVI 2015–2024 (CDL-masked) | ✅ Complete (CSV committed) |
+| Prithvi-100M | Geospatial embeddings (Option B) | Under consideration |
+| Cropland Data Layer | Corn field masking | ✅ Integrated in 03_satellite_fixed |
 | NAIP Imagery | Field boundary data | Not integrated |
 
 ---
@@ -162,9 +160,7 @@ to NASA S3 endpoints.
 All other notebooks run locally in the `geospatial-python-crash-course` conda environment.
 
 **Satellite data workflow:**
-1. Teammate runs `03_satellite.ipynb` on SageMaker → produces `ndvi_by_state_date.csv`
-2. Teammate commits the CSV directly to the repo
-3. `03_satellite.ipynb` lives in the repo for documentation and reproducibility only
+1. Teammate runs `03_satellite_fixed.ipynb` on SageMaker → produces `ndvi_by_state_date.csv`
+2. Teammate commits the CSV directly to the repo (**done** — CSV is in `data/raw/`)
+3. `03_satellite_fixed.ipynb` lives in the repo for documentation and reproducibility only
 4. No other team member needs SageMaker access to proceed
-5. `03b_modis_backfill.ipynb` runs locally — it uses the same `earthaccess` auth but
-   does not require GPU and can execute in the local conda environment
